@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <h2>Twitty Login</h2>
+        {% if error_message %}
+        {{error_message}}
+        {% endif %}
+    </head>
+    <body>
+        <a href="/signup">Signup</a>
+        <form method="POST" action="login">
+            <input type="text" placeholder="Username" name="username">
+            <input type="password" placeholder="Password" name="password">
+            <input type="submit" value="Login">
+        </form>    
+    </body>
+</html>
