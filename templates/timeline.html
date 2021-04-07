@@ -1,16 +1,18 @@
 <html>
-    <head>
-        <h2>THIS IS TWITTY</h2>
-    </head>
+    <head></head>
     <body>
         <a href="/logout">Logout</a>
         <a href="/timeline">timeline</a>
-        <a href="/home">home</a>
-        <form method="POST" action="post">
-            <input type="text" name="post">
-            <input type="submit" value="Post">
-        </form>    
+        <a href="/home">home</a><br>
 
+        <i>Latest registered users</i><br>
+        <div>
+        {% for user in users %}
+        <a class="username" href="/profile/{{ user }}">{{ user }}</a>;
+        {% endfor %}
+        </div><br>
+        
+        <i>Latest 50 messages from users aroud the world!</i><br>
         {% for post in posts %}
         <div class="post">
             <a class="username" href="profile/{{ post.username }}">{{ post.username }}</a>
