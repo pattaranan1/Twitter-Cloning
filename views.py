@@ -40,16 +40,6 @@ def login():
     session['username'] = username
     return redirect('/home')
 
-
-def create_user(username, password):
-    r = redis_link()
-    user_id = r.incr('global:nextUserId')
-    r.set(f'username:{username}:id', user_id)
-    r.set(f'uid:{user_id}:username', username)
-    r.set(f'uid:{user_id}:password', password)
-
-    r.sadd('global:users', user_id)
-
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     error_message = None
@@ -78,6 +68,14 @@ def signup():
     session['username'] = username
     return redirect('/home')
 
+def create_user(username, password):
+    r = redis_link()
+    user_id = r.incr('global:nextUserId')
+    r.set(f'username:{username}:id', user_id)
+    r.set(f'uid:{user_id}:username', username)
+    r.set(f'uid:{user_id}:password', password)
+
+    r.sadd('global:users', user_id)
 
 @app.route('/logout')
 def logout():
@@ -93,8 +91,55 @@ def home():
     user_id = r.get(f"username:{session['username']}:id")
 
     posts = get_posts(user_id)
-    return render_template('home.html', posts=posts, error_message=None)
 
+    count_following = r.scard(f'uid:{user_id}:following') 
+    count_followers = r.scard(f'uid:{user_id}:followers')
+
+    return render_template('home.html', posts=posts, username=session['username'], following=count_following, followers=count_followers,error_message=None)
+
+@app.route('/post', methods=["POST"])
+def post():
+    if not session:
+        return redirect('/')
+
+    r = redis_link()
+    user_id = r.get(f"username:{session['username']}:id")
+    
+    new_post(request.form['post'], user_id)
+
+    return redirect('/home')
+
+def new_post(text, user_id):
+    r = redis_link()
+    post_id = r.incr('global:nextPostId')
+
+    text = text.replace('\n', '')
+    r.set(f'post:{post_id}:uid', user_id)
+    r.set(f'post:{post_id}:created_at', time.time())
+    r.set(f'post:{post_id}:text', text)
+    
+    followers = r.smembers(f'uid:{user_id}:followers')
+    followers.add(user_id)
+
+    for follower in followers:
+        r.lpush(f'uid:{follower}:posts', post_id)
+
+    r.lpush('global:timeline', post_id)
+    r.ltrim('global:timeline', 0, 1000)
+
+def get_posts(user_id, size=1000):
+    
+    r = redis_link()
+    key =  'global:timeline' if user_id == -1 else f'uid:{user_id}:posts'
+    posts = r.lrange(key, 0, size)
+
+    total_post = []
+    for post in posts:    
+        text = r.get(f'post:{post}:text')
+        uid = r.get(f'post:{post}:uid')
+        created_at = float(r.get(f'post:{post}:created_at'))
+        total_post.append({'text':text, 'username': r.get(f'uid:{uid}:username'), 'elapsed': elapsed(created_at)})
+    return total_post
 
 def elapsed(t):
     d = time.time() - t 
@@ -115,61 +160,16 @@ def elapsed(t):
         return time.strftime("%b %e", time.localtime(d))
     return time.strftime("%b %e, %Y", time.localtime(d))
 
-def get_posts(user_id, size=1000):
-    
-    r = redis_link()
-    key =  'global:timeline' if user_id == -1 else f'uid:{user_id}:posts'
-    posts = r.lrange(key, 0, size)
-
-    total_post = []
-    for post in posts:    
-        text = r.get(f'post:{post}:text')
-        uid = r.get(f'post:{post}:uid')
-        created_at = float(r.get(f'post:{post}:created_at'))
-        total_post.append({'text':text, 'username': r.get(f'uid:{uid}:username'), 'elapsed': elapsed(created_at)})
-    return total_post
-
-
-def get_last_users():
-    r = redis_link();
-    users = r.sort('global:users', get='uid:*:username', start=0, num=50);
-    return users
-
-def new_post(text, user_id):
-    r = redis_link()
-    post_id = r.incr('global:nextPostId')
-
-    text = text.replace('\n', '')
-    r.set(f'post:{post_id}:uid', user_id)
-    r.set(f'post:{post_id}:created_at', time.time())
-    r.set(f'post:{post_id}:text', text)
-    
-    followers = r.smembers(f'uid:{user_id}:followers')
-    followers.add(user_id)
-
-    for follower in followers:
-        r.lpush(f'uid:{follower}:posts', post_id)
-
-    r.lpush('global:timeline', post_id)
-    r.ltrim('global:timeline', 0, 1000)
-
-@app.route('/post', methods=["POST"])
-def post():
-    if not session:
-        return redirect('/')
-
-    r = redis_link()
-    user_id = r.get(f"username:{session['username']}:id")
-    
-    new_post(request.form['post'], user_id)
-
-    return redirect('/home')
-
 @app.route('/timeline')
 def timeline():
     if not session:
         return redirect('/')
     return render_template('timeline.html', posts=get_posts(-1, 10), users=get_last_users())
+
+def get_last_users():
+    r = redis_link();
+    users = r.sort('global:users', get='uid:*:username', start=0, num=50);
+    return users
 
 @app.route('/profile/<username>')
 def profile(username):
