@@ -3,6 +3,11 @@
         <h2>THIS IS TWITTY</h2>
     </head>
     <body>
+        {% if error_message %}
+        <div>
+            {{ error_message }}
+        </div>
+        {% else %}
         <a href="/logout">Logout</a>
         <a href="/timeline">timeline</a>
         <a href="/home">home</a>
@@ -17,5 +22,7 @@
            <i> {{ post.elapsed }}</i> <br>{{ post.text }}
         </div>
         {% endfor %}
+        {% endif %}
+
     </body>
 </html>

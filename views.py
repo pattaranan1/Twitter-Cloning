@@ -93,7 +93,7 @@ def home():
     user_id = r.get(f"username:{session['username']}:id")
 
     posts = get_posts(user_id)
-    return render_template('home.html', posts=posts)
+    return render_template('home.html', posts=posts, error_message=None)
 
 
 def elapsed(t):
@@ -170,3 +170,52 @@ def timeline():
     if not session:
         return redirect('/')
     return render_template('timeline.html', posts=get_posts(-1, 10), users=get_last_users())
+
+@app.route('/profile/<username>')
+def profile(username):
+    if not session:
+        return redirect('/')
+    return render_template('profile.html', username=username, profile=get_profile(username), error_message=None)
+
+def get_profile(username):
+
+    r = redis_link()
+    user_id = r.get(f"username:{username}:id")
+    my_user_id = r.get(f"username:{session['username']}:id")
+
+    if not user_id:
+        error_message = f'Profile {username} not exists'
+        return render_template('profile.html', username=username, error_message=error_message)
+
+    profile = {'user_id': user_id}
+    profile['self'] = True if user_id == my_user_id else False
+    profile['is_following'] = r.sismember(f'uid:{my_user_id}:following', user_id)
+
+    return profile
+
+@app.route('/follow')
+def follow():
+    if not session:
+        return redirect('/')
+    
+    r = redis_link()
+    my_user_id = r.get(f"username:{session['username']}:id")
+    username = follow_user(request.values['uid'], my_user_id, request.values['f'])
+    return redirect(f'/profile/{username}')
+
+def follow_user(user_id, my_user_id, f):
+    r = redis_link()
+
+    if my_user_id == user_id:
+       return r.get(f'uid:{user_id}:username')
+
+    if f == '1':
+        r.sadd(f'uid:{user_id}:followers', my_user_id);
+        r.sadd(f'uid:{my_user_id}:following', user_id);
+    elif f == '0':
+        r.srem(f'uid:{user_id}:followers', my_user_id);
+        r.srem(f'uid:{my_user_id}:following', user_id);
+    else:
+        error_message = 'Invalid operation'
+        return render_template('home.html', error_message=error_message) 
+    return r.get(f'uid:{user_id}:username')

@@ -1,0 +1,22 @@
+<html>
+    <head>
+    </head>
+    <body>
+        <a href="/logout">Logout</a>
+        <a href="/timeline">timeline</a>
+        <a href="/home">home</a><br>
+
+        {% if not err_msg: %}
+            {{username}}
+            {% if not profile.self %}
+                {% if profile.is_following %}
+                    <a href="/follow?uid={{ profile.user_id }}&f=0" class="button">Unfollow</a>
+                {% else %}
+                    <a href="/follow?uid={{ profile.user_id }}&f=1" class="button">Follow</a>
+                {% endif %}
+            {% endif %}
+        {% else %}
+            {{ error_message }}
+        {% endif %}
+    </body>
+</html>
