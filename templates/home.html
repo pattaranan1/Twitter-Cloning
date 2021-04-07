@@ -3,6 +3,17 @@
         <h2>THIS IS TWITTY</h2>
     </head>
     <body>
-        <a href="/logout">Logout</a>
+        <a href="/post">Logout</a>
+        <form method="POST" action="post">
+            <input type="text" name="post">
+            <input type="submit" value="Post">
+        </form>    
+
+        {% for post in posts %}
+        <div class="post">
+            <a class="username" href="profile/{{ post.username }}">{{ post.username }}</a>
+            {{ post.text }}<br><i>posted {{ post.elapsed }} ago</i>
+        </div>
+        {% endfor %}
     </body>
 </html>

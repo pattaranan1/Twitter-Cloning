@@ -1,13 +1,18 @@
 from flask import Flask, request, render_template, redirect, session
 import redis
-import hashlib 
+from time import time 
 import sys
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "SPN STOP ASSIGN WORK PLEASE"
 
 def redis_link():
-    return redis.StrictRedis(host='127.0.0.1', port=6379, db=0, charset="utf-8", decode_responses=True)
+    return redis.StrictRedis(
+        host='127.0.0.1', 
+        port=6379, 
+        db=0, 
+        charset="utf-8", 
+        decode_responses=True)
 
 @app.route('/')
 def root():
@@ -79,8 +84,50 @@ def logout():
     session.pop('username', None)
     return redirect('/')
 
-@app.route('/home', methods=['GET', 'POST'])
+@app.route('/home')
 def home():
     if not session:
         return redirect('/')
-    return render_template('home.html')
+    
+    r = redis_link()
+    user_id = r.get(f"username:{session['username']}:id")
+    posts = r.lrange(f'uid:{user_id}:posts', 0, 1000)
+
+    total_post = []
+    for post in posts:    
+        text = r.get(f'post:{post}:text')
+        uid = r.get(f'post:{post}:uid')
+        created_at = r.get(f'post:{post}:created_at')
+        total_post.append({'text':text, 'username': r.get(f'uid:{uid}:username'), 'elapsed': 'dummy time'})
+
+    return render_template('home.html', posts=total_post)
+
+def new_post(text, user_id):
+    r = redis_link()
+    post_id = r.incr('global:nextPostId')
+
+    text = text.replace('\n', '')
+    r.set(f'post:{post_id}:uid', user_id)
+    r.set(f'post:{post_id}:created_at', time())
+    r.set(f'post:{post_id}:text', text)
+    
+    followers = r.smembers(f'uid:{user_id}:followers')
+    followers.add(user_id)
+
+    for follower in followers:
+        r.lpush(f'uid:{follower}:posts', post_id)
+
+    r.lpush('global:timeline', post_id)
+    r.ltrim('global:timeline', 0, 1000)
+
+@app.route('/post', methods=["POST"])
+def post():
+    if not session:
+        return redirect('/')
+
+    r = redis_link()
+    user_id = r.get(f"username:{session['username']}:id")
+    
+    new_post(request.form['post'], user_id)
+
+    return redirect('/home')
