@@ -24,6 +24,10 @@ def redis_link():
         charset="utf-8", 
         decode_responses=True)
 
+@app.before_request
+def before_request():
+    g.db = redis_link()
+
 @app.route('/')
 def root():
     if session:
@@ -32,17 +36,15 @@ def root():
 
 @app.route('/login', methods=['POST'])
 def login():
-    r = redis_link()
-
     username = request.form['username']
     password = request.form['password']
-    user_id = r.get(f'username:{username}:id')
+    user_id = g.db.get(f'username:{username}:id')
 
     if not user_id:
         error_message = f'No such user {username}'
         return render_template('login.html', error_message=error_message)
     
-    saved_password = r.get(f'uid:{user_id}:password')
+    saved_password = g.db.get(f'uid:{user_id}:password')
     if saved_password != password:
         error_message = 'Wrong password!'
         return render_template('login.html', error_message=error_message)
@@ -53,7 +55,7 @@ def login():
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     error_message = None
-    r = redis_link()
+    
     if request.method == 'GET':
             return render_template('signup.html', error_message=error_message)
 
@@ -69,7 +71,7 @@ def signup():
         error_message = 'Password and Confirmation password must be the same'
         return render_template('signup.html', error_message=error_message)
 
-    user_id = r.get(f"username:{username}:id")
+    user_id = g.db.get(f"username:{username}:id")
     if user_id:
         error_message = 'Sorry the selected username is already in use.'
         return render_template('signup.html', error_message=error_message)
@@ -79,13 +81,12 @@ def signup():
     return redirect('/home')
 
 def create_user(username, password):
-    r = redis_link()
-    user_id = r.incr('global:nextUserId')
-    r.set(f'username:{username}:id', user_id)
-    r.set(f'uid:{user_id}:username', username)
-    r.set(f'uid:{user_id}:password', password)
+    user_id = g.db.incr('global:nextUserId')
+    g.db.set(f'username:{username}:id', user_id)
+    g.db.set(f'uid:{user_id}:username', username)
+    g.db.set(f'uid:{user_id}:password', password)
 
-    r.sadd('global:users', user_id)
+    g.db.sadd('global:users', user_id)
 
 @app.route('/logout')
 def logout():
@@ -94,57 +95,50 @@ def logout():
 
 @app.route('/home')
 @login_required
-def home():
-    r = redis_link()
-    user_id = r.get(f"username:{session['username']}:id")
+def home():   
+    user_id = g.db.get(f"username:{session['username']}:id")
 
     posts = get_posts(user_id)
 
-    count_following = r.scard(f'uid:{user_id}:following') 
-    count_followers = r.scard(f'uid:{user_id}:followers')
+    count_following = g.db.scard(f'uid:{user_id}:following') 
+    count_followers = g.db.scard(f'uid:{user_id}:followers')
 
     return render_template('home.html', posts=posts, username=session['username'], following=count_following, followers=count_followers,error_message=None)
 
 @app.route('/post', methods=["POST"])
 @login_required
 def post():
-    r = redis_link()
-    user_id = r.get(f"username:{session['username']}:id")
-    
+    user_id = g.db.get(f"username:{session['username']}:id")
     new_post(request.form['post'], user_id)
-
     return redirect('/home')
 
 def new_post(text, user_id):
-    r = redis_link()
-    post_id = r.incr('global:nextPostId')
+    post_id = g.db.incr('global:nextPostId')
 
     text = text.replace('\n', '')
-    r.set(f'post:{post_id}:uid', user_id)
-    r.set(f'post:{post_id}:created_at', time.time())
-    r.set(f'post:{post_id}:text', text)
+    g.db.set(f'post:{post_id}:uid', user_id)
+    g.db.set(f'post:{post_id}:created_at', time.time())
+    g.db.set(f'post:{post_id}:text', text)
     
-    followers = r.smembers(f'uid:{user_id}:followers')
+    followers = g.db.smembers(f'uid:{user_id}:followers')
     followers.add(user_id)
 
     for follower in followers:
-        r.lpush(f'uid:{follower}:posts', post_id)
+        g.db.lpush(f'uid:{follower}:posts', post_id)
 
-    r.lpush('global:timeline', post_id)
-    r.ltrim('global:timeline', 0, 1000)
+    g.db.lpush('global:timeline', post_id)
+    g.db.ltrim('global:timeline', 0, 1000)
 
 def get_posts(user_id, size=1000):
-    
-    r = redis_link()
     key =  'global:timeline' if user_id == -1 else f'uid:{user_id}:posts'
-    posts = r.lrange(key, 0, size)
+    posts = g.db.lrange(key, 0, size)
 
     total_post = []
     for post in posts:    
-        text = r.get(f'post:{post}:text')
-        uid = r.get(f'post:{post}:uid')
-        created_at = float(r.get(f'post:{post}:created_at'))
-        total_post.append({'text':text, 'username': r.get(f'uid:{uid}:username'), 'elapsed': elapsed(created_at)})
+        text = g.db.get(f'post:{post}:text')
+        uid = g.db.get(f'post:{post}:uid')
+        created_at = float(g.db.get(f'post:{post}:created_at'))
+        total_post.append({'text':text, 'username': g.db.get(f'uid:{uid}:username'), 'elapsed': elapsed(created_at)})
     return total_post
 
 def elapsed(t):
@@ -172,15 +166,13 @@ def timeline():
     return render_template('timeline.html', posts=get_posts(-1, 10), users=get_last_users())
 
 def get_last_users():
-    r = redis_link();
-    users = r.sort('global:users', get='uid:*:username', start=0, num=50);
+    users = g.db.sort('global:users', get='uid:*:username', start=0, num=50);
     return users
 
 @app.route('/profile/<username>')
 @login_required
 def profile(username):
-    r = redis_link()
-    user_id = r.get(f"username:{username}:id")
+    user_id = g.db.get(f"username:{username}:id")
 
     if not user_id:
         error_message = f'Profile {username} not exists'
@@ -188,37 +180,33 @@ def profile(username):
 
     return render_template('profile.html', username=username, profile=get_profile(user_id, username), posts=get_posts(user_id), error_message=None)
 
-def get_profile(user_id, username):
-    r = redis_link()
-    my_user_id = r.get(f"username:{session['username']}:id")
+def get_profile(user_id, username): 
+    my_user_id = g.db.get(f"username:{session['username']}:id")
 
     profile = {'user_id': user_id}
     profile['self'] = True if user_id == my_user_id else False
-    profile['is_following'] = r.sismember(f'uid:{my_user_id}:following', user_id)
+    profile['is_following'] = g.db.sismember(f'uid:{my_user_id}:following', user_id)
 
     return profile
 
 @app.route('/follow')
 @login_required
 def follow():
-    r = redis_link()
-    my_user_id = r.get(f"username:{session['username']}:id")
+    my_user_id = g.db.get(f"username:{session['username']}:id")
     username = follow_user(request.values['uid'], my_user_id, request.values['f'])
     return redirect(f'/profile/{username}')
 
 def follow_user(user_id, my_user_id, f):
-    r = redis_link()
-
     if my_user_id == user_id:
-       return r.get(f'uid:{user_id}:username')
+       return g.db.get(f'uid:{user_id}:username')
 
     if f == '1':
-        r.sadd(f'uid:{user_id}:followers', my_user_id);
-        r.sadd(f'uid:{my_user_id}:following', user_id);
+        g.db.sadd(f'uid:{user_id}:followers', my_user_id);
+        g.db.sadd(f'uid:{my_user_id}:following', user_id);
     elif f == '0':
-        r.srem(f'uid:{user_id}:followers', my_user_id);
-        r.srem(f'uid:{my_user_id}:following', user_id);
+        g.db.srem(f'uid:{user_id}:followers', my_user_id);
+        g.db.srem(f'uid:{my_user_id}:following', user_id);
     else:
         error_message = 'Invalid operation'
         return render_template('home.html', error_message=error_message) 
-    return r.get(f'uid:{user_id}:username')
+    return g.db.get(f'uid:{user_id}:username')
