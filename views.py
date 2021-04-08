@@ -154,11 +154,11 @@ def elapsed(t):
         return f"{h}h"
 
     this_year = time.localtime().tm_year 
-    created_year = time.localtime(d).tm_year
+    created_year = time.localtime(t).tm_year
 
     if this_year - created_year < 1:
-        return time.strftime("%b %e", time.localtime(d))
-    return time.strftime("%b %e, %Y", time.localtime(d))
+        return time.strftime("%b %e", time.localtime(t))
+    return time.strftime("%b %e, %Y", time.localtime(t))
 
 @app.route('/timeline')
 @login_required
