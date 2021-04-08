@@ -1,10 +1,20 @@
-from flask import Flask, request, render_template, redirect, session
+from functools import wraps
+from flask import g, Flask, request, render_template, redirect, session
 import redis
 import time
 import sys
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "SPN STOP ASSIGN WORK PLEASE"
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session:
+            return redirect('/')
+        return f(*args, **kwargs)
+    return decorated_function
 
 def redis_link():
     return redis.StrictRedis(
@@ -83,10 +93,8 @@ def logout():
     return redirect('/')
 
 @app.route('/home')
+@login_required
 def home():
-    if not session:
-        return redirect('/')
-    
     r = redis_link()
     user_id = r.get(f"username:{session['username']}:id")
 
@@ -98,10 +106,8 @@ def home():
     return render_template('home.html', posts=posts, username=session['username'], following=count_following, followers=count_followers,error_message=None)
 
 @app.route('/post', methods=["POST"])
+@login_required
 def post():
-    if not session:
-        return redirect('/')
-
     r = redis_link()
     user_id = r.get(f"username:{session['username']}:id")
     
@@ -161,9 +167,8 @@ def elapsed(t):
     return time.strftime("%b %e, %Y", time.localtime(d))
 
 @app.route('/timeline')
+@login_required
 def timeline():
-    if not session:
-        return redirect('/')
     return render_template('timeline.html', posts=get_posts(-1, 10), users=get_last_users())
 
 def get_last_users():
@@ -172,10 +177,8 @@ def get_last_users():
     return users
 
 @app.route('/profile/<username>')
+@login_required
 def profile(username):
-    if not session:
-        return redirect('/')
-
     r = redis_link()
     user_id = r.get(f"username:{username}:id")
 
@@ -186,7 +189,6 @@ def profile(username):
     return render_template('profile.html', username=username, profile=get_profile(user_id, username), posts=get_posts(user_id), error_message=None)
 
 def get_profile(user_id, username):
-
     r = redis_link()
     my_user_id = r.get(f"username:{session['username']}:id")
 
@@ -197,10 +199,8 @@ def get_profile(user_id, username):
     return profile
 
 @app.route('/follow')
+@login_required
 def follow():
-    if not session:
-        return redirect('/')
-    
     r = redis_link()
     my_user_id = r.get(f"username:{session['username']}:id")
     username = follow_user(request.values['uid'], my_user_id, request.values['f'])
