@@ -175,17 +175,20 @@ def get_last_users():
 def profile(username):
     if not session:
         return redirect('/')
-    return render_template('profile.html', username=username, profile=get_profile(username), error_message=None)
-
-def get_profile(username):
 
     r = redis_link()
     user_id = r.get(f"username:{username}:id")
-    my_user_id = r.get(f"username:{session['username']}:id")
 
     if not user_id:
         error_message = f'Profile {username} not exists'
         return render_template('profile.html', username=username, error_message=error_message)
+
+    return render_template('profile.html', username=username, profile=get_profile(user_id, username), posts=get_posts(user_id), error_message=None)
+
+def get_profile(user_id, username):
+
+    r = redis_link()
+    my_user_id = r.get(f"username:{session['username']}:id")
 
     profile = {'user_id': user_id}
     profile['self'] = True if user_id == my_user_id else False

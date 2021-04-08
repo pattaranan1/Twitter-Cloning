@@ -14,6 +14,12 @@
                 {% else %}
                     <a href="/follow?uid={{ profile.user_id }}&f=1" class="button">Follow</a>
                 {% endif %}
+                {% for post in posts %}
+                <div class="post">
+                    <a class="username" href="profile/{{ post.username }}">{{ post.username }}</a>
+                    <i> {{ post.elapsed }}</i> <br>{{ post.text }}
+                </div>
+                {% endfor %}
             {% endif %}
         {% else %}
             {{ error_message }}
