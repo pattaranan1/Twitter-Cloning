@@ -1,0 +1,84 @@
+html, body
+{
+    height: 100%;
+}
+
+.feature {
+    margin: 0 auto;
+    padding: 1em 0;
+    position: relative;
+}
+.feature-title {
+    color: #333;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+img{
+        max-width: 100%;
+        max-height: 100%;
+        display: block; /* remove extra space below image */
+    }
+
+img.sign-up {
+    width: 300px;
+}
+
+.box{
+      width: 100%;
+      height: auto;
+      margin-top: 150px;
+      margin-left: -50px;
+    }
+
+.middle {
+    margin: auto;
+}
+
+@font-face{
+    font-family: andale_mono;
+    src: url('/static/fonts/andale_mono-webfont.woff2') format('woff2'),
+         url('/static/fonts/andale_mono-webfont.woff') format('woff');
+    font-weight: normal;}
+
+
+.form-style {
+    display: block;
+    width: 100%;
+    height: calc(1.5em + .75rem + 2px);
+    padding: .375rem .75rem;
+    font-family: andale_mono;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #f9e37b;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+}
+
+.btn-submit {
+    font-family: andale_mono;
+    color: #1d2124;
+    background-color: #fff;
+    border-color: #f9e37b;
+    border-style: solid;
+}
+
+.login-box {
+    background-color: #fff;
+    padding: 20px;
+    border-style: solid;
+}
+
+.sign-up-box {
+    background-color: #fff;
+    padding: 20px;
+    margin: auto;
+    margin-bottom: 30px;
+    border-style: solid;
+}
