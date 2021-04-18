@@ -22,12 +22,20 @@ img{
         display: block; /* remove extra space below image */
     }
 
+img.sign-up {
+    width: 300px;
+}
+
 .box{
       width: 100%;
       height: auto;
       margin-top: 150px;
       margin-left: -50px;
     }
+
+.middle {
+    margin: auto;
+}
 
 @font-face{
     font-family: andale_mono;
@@ -64,5 +72,13 @@ img{
 .login-box {
     background-color: #fff;
     padding: 20px;
+    border-style: solid;
+}
+
+.sign-up-box {
+    background-color: #fff;
+    padding: 20px;
+    margin: auto;
+    margin-bottom: 30px;
     border-style: solid;
 }
