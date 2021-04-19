@@ -15,7 +15,7 @@
         <i>Latest 50 messages from users aroud the world!</i><br>
         {% for post in posts %}
         <div class="post">
-            <a class="username" href="profile/{{ post.username }}">{{ post.username }}</a>
+            <a class="username" href="/profile/{{ post.username }}">{{ post.username }}</a>
            <i> {{ post.elapsed }}</i> <br>{{ post.text }}
         </div>
         {% endfor %}
