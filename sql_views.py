@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import Flask, request, render_template, redirect, session
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 import time
 from datetime import datetime
@@ -8,10 +9,9 @@ import sys
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "SPN STOP ASSIGN WORK PLEASE"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres@localhost:5432/postgres'
 db = SQLAlchemy(app)
-
-db.init_app(app)
+migrate = Migrate(app, db)
 
 followers = db.Table('followers',
     db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
