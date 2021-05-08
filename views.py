@@ -132,6 +132,7 @@ def new_post(text, user_id):
 def get_posts(user_id, size=1000):
     key =  'global:timeline' if user_id == -1 else f'uid:{user_id}:posts'
     posts = g.db.lrange(key, 0, size)
+    #posts = g.db.lrange(key, 0, -1) # get all values
 
     total_post = []
     for post in posts:    
