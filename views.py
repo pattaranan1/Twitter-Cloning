@@ -127,7 +127,7 @@ def new_post(text, user_id):
         g.db.lpush(f'uid:{follower}:posts', post_id)
 
     g.db.lpush('global:timeline', post_id)
-    g.db.ltrim('global:timeline', 0, 1000)
+    # g.db.ltrim('global:timeline', 0, 1000)
 
 def get_posts(user_id, size=1000):
     key =  'global:timeline' if user_id == -1 else f'uid:{user_id}:posts'
@@ -164,7 +164,7 @@ def elapsed(t):
 @app.route('/timeline')
 @login_required
 def timeline():
-    return render_template('timeline.html', posts=get_posts(-1, 10), users=get_last_users())
+    return render_template('timeline.html', posts=get_posts(-1, 1000), users=get_last_users())
 
 def get_last_users():
     users = g.db.sort('global:users', get='uid:*:username', start=0, num=50);

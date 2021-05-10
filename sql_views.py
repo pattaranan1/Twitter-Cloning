@@ -41,7 +41,7 @@ class User(db.Model):
             followers, (followers.c.followed_id == Post.user_id)).filter(
             followers.c.follower_id == self.id)
         own = Post.query.filter_by(user_id=self.id)
-        posts = followed_posts.union(own).order_by(Post.created_at.desc())
+        posts = followed_posts.union(own).order_by(Post.created_at.desc()).limit(1000).all()
         total_post = []
         for post in posts:    
             total_post.append({'text':post.text, 'username': post.user.username, 'elapsed': elapsed(post.created_at)})
@@ -180,7 +180,7 @@ def elapsed(t):
 @app.route('/timeline')
 @login_required
 def timeline():
-    posts = Post.query.order_by(Post.created_at.desc()).all()
+    posts = Post.query.order_by(Post.created_at.desc()).limit(1000).all()
     total_post = []
     for post in posts:   
         total_post.append({'text':post.text, 'username': post.user.username, 'elapsed': elapsed(post.created_at)})
