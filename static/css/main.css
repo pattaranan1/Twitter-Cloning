@@ -116,3 +116,9 @@ a:link, a:visited {
 a:hover, a:active {
     color: #fff;
 }
+
+.profile {
+    font-family: andale_mono;
+    font-size: 20px;
+    margin-bottom: 20;
+}
