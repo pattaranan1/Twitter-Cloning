@@ -82,3 +82,37 @@ img.sign-up {
     margin-bottom: 30px;
     border-style: solid;
 }
+
+.bg-light-yellow {
+    background-color: #FCF3CA;
+}
+
+.bg-white {
+    background-color: #fff;
+}
+
+.bg-yellow {
+    background-color: #f9e37b;
+}
+
+.text-nav {
+    color: #958849;
+    font-family: andale_mono;
+    font-size: 25;
+    font-weight: 700;
+    padding-left: 20;
+    bottom: 0;
+}
+
+.text {
+    font-family: andale_mono;
+    font-size: 20px;
+}
+
+a:link, a:visited {
+    color: #7C713D;
+}
+
+a:hover, a:active {
+    color: #fff;
+}
